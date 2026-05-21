@@ -9,14 +9,13 @@ console.log("🚀 Iniciando Motor Zero-Erro v3...");
 
 const PHONE_NUMBER = process.env.PHONE_NUMBER;
 // No Railway com Nixpacks, apenas o nome do comando funciona
-const chromePath = "google-chrome";
-
+const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
 const client = new Client({
     authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
     puppeteer: {
         headless: 'new',
         executablePath: chromePath,
-        args: [
+         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
