@@ -5,11 +5,11 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-console.log("🚀 Iniciando Motor Zero-Erro...");
+console.log("🚀 Iniciando Motor Zero-Erro v3...");
 
 const PHONE_NUMBER = process.env.PHONE_NUMBER;
-// No Railway, usamos o Chrome que o Nixpacks instala
-const chromePath = "/usr/bin/google-chrome";
+// No Railway com Nixpacks, apenas o nome do comando funciona
+const chromePath = "google-chrome";
 
 const client = new Client({
     authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
@@ -27,9 +27,8 @@ const client = new Client({
     }
 });
 
-// Evento de QR Code (Plano B)
 client.on('qr', (qr) => {
-    console.log('⚠️ QR CODE DISPONÍVEL NO TERMINAL:');
+    console.log('⚠️ QR CODE DISPONÍVEL (Caso o código falhe):');
     qrcode.generate(qr, { small: true });
 });
 
@@ -37,26 +36,26 @@ client.on('ready', () => {
     console.log('✅ SUCESSO! Bot conectado e ativo.');
 });
 
-// Essa função é a que vai resolver o erro de 'evaluate'
 async function iniciarConexao() {
     try {
-        console.log("1. Ligando o navegador Chrome...");
+        console.log("1. Ligando o navegador...");
         await client.initialize();
         
-        console.log("2. Navegador ok! Aguardando 40 segundos para o WhatsApp carregar...");
-        // Damos 40 segundos para o servidor gratuito processar tudo
+        console.log("2. Aguardando 40s para estabilizar...");
         await new Promise(resolve => setTimeout(resolve, 40000));
 
         if (PHONE_NUMBER && !client.info) {
-            console.log(`3. Solicitando código para: ${PHONE_NUMBER}`);
+            console.log("3. Solicitando código para:", PHONE_NUMBER);
             const code = await client.requestPairingCode(PHONE_NUMBER);
             console.log('\n=========================================');
             console.log('👉 SEU CÓDIGO NO WHATSAPP:', code);
             console.log('=========================================\n');
         }
     } catch (err) {
-        console.error("❌ Erro durante o arranque:", err.message);
-        console.log("Reiniciando em 1 minuto...");
+        console.error("❌ Erro:", err.message);
+        if (err.message.includes("ENOENT")) {
+            console.log("DICA: O Railway ainda não instalou o Chrome. Verifique o arquivo nixpacks.toml");
+        }
         setTimeout(iniciarConexao, 60000);
     }
 }
