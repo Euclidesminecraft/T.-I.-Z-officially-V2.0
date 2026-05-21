@@ -5,17 +5,18 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-console.log("🚀 Iniciando Motor Zero-Erro v3...");
+console.log("🚀 Iniciando Motor Zero-Erro v4...");
 
+// Use exatamente estes nomes, sem barras invertidas
 const PHONE_NUMBER = process.env.PHONE_NUMBER;
-// No Railway com Nixpacks, apenas o nome do comando funciona
-const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
+const chromePath = "chromium";
+
 const client = new Client({
     authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
     puppeteer: {
         headless: 'new',
         executablePath: chromePath,
-         args: [
+        args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
@@ -27,34 +28,31 @@ const client = new Client({
 });
 
 client.on('qr', (qr) => {
-    console.log('⚠️ QR CODE DISPONÍVEL (Caso o código falhe):');
+    console.log('⚠️ QR CODE GERADO NO TERMINAL:');
     qrcode.generate(qr, { small: true });
 });
 
 client.on('ready', () => {
-    console.log('✅ SUCESSO! Bot conectado e ativo.');
+    console.log('✅ CONECTADO! O bot está funcionando.');
 });
 
 async function iniciarConexao() {
     try {
-        console.log("1. Ligando o navegador...");
+        console.log("1. Abrindo navegador Chromium...");
         await client.initialize();
         
-        console.log("2. Aguardando 40s para estabilizar...");
-        await new Promise(resolve => setTimeout(resolve, 40000));
+        console.log("2. Aguardando 30 segundos...");
+        await new Promise(resolve => setTimeout(resolve, 30000));
 
         if (PHONE_NUMBER && !client.info) {
-            console.log("3. Solicitando código para:", PHONE_NUMBER);
+            console.log("3. Pedindo código para:", PHONE_NUMBER);
             const code = await client.requestPairingCode(PHONE_NUMBER);
             console.log('\n=========================================');
-            console.log('👉 SEU CÓDIGO NO WHATSAPP:', code);
+            console.log('👉 SEU CÓDIGO:', code);
             console.log('=========================================\n');
         }
     } catch (err) {
-        console.error("❌ Erro:", err.message);
-        if (err.message.includes("ENOENT")) {
-            console.log("DICA: O Railway ainda não instalou o Chrome. Verifique o arquivo nixpacks.toml");
-        }
+        console.error("❌ Erro no arranque:", err.message);
         setTimeout(iniciarConexao, 60000);
     }
 }
