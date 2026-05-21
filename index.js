@@ -1,102 +1,61 @@
 import pkg from 'whatsapp-web.js';
 const { Client, LocalAuth } = pkg;
 import qrcode from 'qrcode-terminal';
-import axios from 'axios';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Configurações de Ambiente
-const DEEPSEEK_KEY = process.env.DEEPSEEK_API_KEY || '';
-const PHONE_NUMBER = process.env.PHONE_NUMBER; 
+console.log("🚀 Iniciando o sistema...");
 
-if (!PHONE_NUMBER) {
-    console.error("❌ ERRO: Você esqueceu de colocar o PHONE_NUMBER nas variáveis de ambiente!");
-    process.exit(1);
-}
-
-const lastUsed = new Map();
+// Tenta pegar o caminho do Chromium do sistema ou da variável
+const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
+const PHONE_NUMBER = process.env.PHONE_NUMBER;
 
 const client = new Client({
     authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
     puppeteer: {
         headless: 'new',
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome',
+        executablePath: chromePath,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
             '--single-process',
-            '--disable-gpu'
+            '--no-zygote'
         ]
     }
 });
 
-// Exibe QR Code se o código falhar
 client.on('qr', (qr) => {
-    console.log('--- OU ESCANEIE O QR CODE ---');
+    console.log('⚠️ QR CODE GERADO (Escaneie se o código não funcionar):');
     qrcode.generate(qr, { small: true });
 });
 
-// Exibe o código de 8 dígitos para pareamento
 client.on('code', (code) => {
-    console.log('\n=========================================');
-    console.log('CÓDIGO DE CONEXÃO NO WHATSAPP:');
-    console.log(`👉 ${code} 👈`);
-    console.log('=========================================\n');
+    console.log('\n✅ SEU CÓDIGO DE PAREAMENTO:', code, '\n');
 });
 
-client.on('ready', () => console.log('✅ Bot Online e Conectado!'));
+client.on('ready', () => console.log('✅ BOT CONECTADO COM SUCESSO!'));
 
-client.on('message', async (msg) => {
-    try {
-        if (msg.fromMe || msg.isStatus) return;
+client.on('auth_failure', msg => console.error('❌ FALHA NA AUTENTICAÇÃO:', msg));
 
-        const chat = await msg.getChat();
-        const body = msg.body.toLowerCase();
+// Inicialização com tratamento de erro
+client.initialize().catch(err => {
+    console.error("❌ ERRO AO INICIALIZAR PUPPETEER:", err.message);
+    console.log("DICA: Verifique se as Variables PHONE_NUMBER e DEEPSEEK_API_KEY estão preenchidas no Railway.");
+});
 
-        // Lógica de Grupos: Só responde se marcar o bot ou usar comando
-        if (chat.isGroup) {
-            const isMentioned = msg.mentionedIds.includes(client.info.wid._serialized);
-            if (!isMentioned && !body.startsWith('!bot')) return;
+// Pedido de código com atraso para o servidor respirar
+setTimeout(async () => {
+    if (PHONE_NUMBER && !client.info) {
+        try {
+            console.log("Pedindo código para o número:", PHONE_NUMBER);
+            const pairingCode = await client.requestPairingCode(PHONE_NUMBER);
+            console.log('👉 DIGITE ESTE CÓDIGO:', pairingCode);
+        } catch (e) {
+            console.log('Aguardando conexão via QR ou Código...');
         }
-
-        // Anti-Spam: 1 msg a cada 3 segundos
-        const now = Date.now();
-        if (lastUsed.has(msg.from) && (now - lastUsed.get(msg.from) < 3000)) return;
-        lastUsed.set(msg.from, now);
-
-        if (DEEPSEEK_KEY) {
-            msg.react('⏳');
-            const res = await axios.post('https://api.deepseek.com/v1/chat/completions', {
-                model: "deepseek-chat",
-                messages: [{ role: "user", content: msg.body }],
-                max_tokens: 400
-            }, {
-                headers: { 'Authorization': `Bearer ${DEEPSEEK_KEY}` },
-                timeout: 25000
-            });
-
-            await msg.reply(res.data.choices[0].message.content);
-        }
-    } catch (err) {
-        console.log('⚠️ Erro ao responder:', err.message);
+    } else if (!PHONE_NUMBER) {
+        console.log("⚠️ AVISO: Variável PHONE_NUMBER não encontrada. Use QR Code ou configure as Variables.");
     }
-});
-
-// Inicialização com pedido de código
-client.initialize().then(() => {
-    setTimeout(async () => {
-        if (!client.info) {
-            try {
-                const pairingCode = await client.requestPairingCode(PHONE_NUMBER);
-                console.log('CÓDIGO SOLICITADO:', pairingCode);
-            } catch (e) {
-                console.log('Aguardando conexão...');
-            }
-        }
-    }, 5000);
-});
+}, 10000);
