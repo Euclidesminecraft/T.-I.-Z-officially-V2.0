@@ -2,7 +2,10 @@
 nixPkgs = ["nodejs_20", "chromium"]
 
 [phases.install]
-cmds = ["npm ci"]
+cmds = ["npm install"]
+
+[phases.build]
+cmds = ["echo 'build ok'"]
 
 [start]
 cmd = "node index.js"
