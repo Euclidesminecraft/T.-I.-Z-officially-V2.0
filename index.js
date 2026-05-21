@@ -5,10 +5,11 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-console.log("🚀 Iniciando sistema ultra-resiliente...");
+console.log("🚀 Iniciando Motor Zero-Erro...");
 
 const PHONE_NUMBER = process.env.PHONE_NUMBER;
-const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
+// No Railway, usamos o Chrome que o Nixpacks instala
+const chromePath = "/usr/bin/google-chrome";
 
 const client = new Client({
     authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
@@ -19,46 +20,45 @@ const client = new Client({
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
-            '--single-process',
-            '--no-zygote'
+            '--disable-gpu',
+            '--no-zygote',
+            '--single-process'
         ]
     }
 });
 
-// Se o código de pareamento falhar, ele vai gerar um QR Code no terminal como Plano B
+// Evento de QR Code (Plano B)
 client.on('qr', (qr) => {
-    console.log('⚠️ QR CODE DISPONÍVEL (Caso o código de 8 dígitos falhe):');
+    console.log('⚠️ QR CODE DISPONÍVEL NO TERMINAL:');
     qrcode.generate(qr, { small: true });
 });
 
 client.on('ready', () => {
-    console.log('✅ CONECTADO! O bot já pode receber mensagens.');
+    console.log('✅ SUCESSO! Bot conectado e ativo.');
 });
 
-// Função para pedir o código com repetição automática
-async function requestPairingCodeWithRetry() {
-    if (!PHONE_NUMBER) {
-        console.log("❌ ERRO: PHONE_NUMBER não configurado nas variáveis.");
-        return;
-    }
+// Essa função é a que vai resolver o erro de 'evaluate'
+async function iniciarConexao() {
+    try {
+        console.log("1. Ligando o navegador Chrome...");
+        await client.initialize();
+        
+        console.log("2. Navegador ok! Aguardando 40 segundos para o WhatsApp carregar...");
+        // Damos 40 segundos para o servidor gratuito processar tudo
+        await new Promise(resolve => setTimeout(resolve, 40000));
 
-    let codeSent = false;
-    while (!codeSent) {
-        try {
-            console.log(`⏳ Tentando gerar código para: ${PHONE_NUMBER}...`);
+        if (PHONE_NUMBER && !client.info) {
+            console.log(`3. Solicitando código para: ${PHONE_NUMBER}`);
             const code = await client.requestPairingCode(PHONE_NUMBER);
             console.log('\n=========================================');
             console.log('👉 SEU CÓDIGO NO WHATSAPP:', code);
             console.log('=========================================\n');
-            codeSent = true;
-        } catch (err) {
-            console.log(`❌ Erro temporário: ${err.message}. Tentando novamente em 20s...`);
-            await new Promise(res => setTimeout(res, 20000)); // Espera 20 segundos
         }
+    } catch (err) {
+        console.error("❌ Erro durante o arranque:", err.message);
+        console.log("Reiniciando em 1 minuto...");
+        setTimeout(iniciarConexao, 60000);
     }
 }
 
-client.initialize();
-
-// Inicia a tentativa de pareamento
-requestPairingCodeWithRetry();
+iniciarConexao();
