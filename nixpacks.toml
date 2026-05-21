@@ -1,5 +1,8 @@
 [phases.setup]
-nixPkgs = ["nodejs", "chromium", "glib", "nss", "expat"]
+nixPkgs = ["nodejs", "chromium", "glib", "nss", "expat", "dbus", "libxml2", "libxslt"]
+
+[phases.install]
+cmds = ["npm install"]
 
 [variables]
 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
