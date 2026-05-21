@@ -1,6 +1,8 @@
 [phases.setup]
-nixPkgs = ["nodejs", "google-chrome", "cacert"]
+nixPkgs = ["nodejs_20", "chromium"]
 
-[variables]
-PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
-PUPPETEER_EXECUTABLE_PATH = "google-chrome"
+[phases.install]
+cmds = ["npm ci"]
+
+[start]
+cmd = "node index.js"
