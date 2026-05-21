@@ -5,11 +5,11 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-console.log("🚀 Iniciando Motor Zero-Erro v4...");
+console.log("🚀 Motor Zero-Erro v5 - Iniciando...");
 
-// Use exatamente estes nomes, sem barras invertidas
+// ATENÇÃO: Verifique se não há barras invertidas abaixo
 const PHONE_NUMBER = process.env.PHONE_NUMBER;
-const chromePath = "chromium";
+const chromePath = "chromium"; // O Railway vai instalar este
 
 const client = new Client({
     authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
@@ -21,6 +21,7 @@ const client = new Client({
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
             '--disable-gpu',
+            '--no-first-run',
             '--no-zygote',
             '--single-process'
         ]
@@ -28,33 +29,35 @@ const client = new Client({
 });
 
 client.on('qr', (qr) => {
-    console.log('⚠️ QR CODE GERADO NO TERMINAL:');
+    console.log('⚠️ QR CODE GERADO:');
     qrcode.generate(qr, { small: true });
 });
 
 client.on('ready', () => {
-    console.log('✅ CONECTADO! O bot está funcionando.');
+    console.log('✅ BOT CONECTADO COM SUCESSO!');
 });
 
-async function iniciarConexao() {
+async function start() {
     try {
-        console.log("1. Abrindo navegador Chromium...");
+        console.log("1. Tentando abrir o Chromium...");
         await client.initialize();
         
-        console.log("2. Aguardando 30 segundos...");
-        await new Promise(resolve => setTimeout(resolve, 30000));
+        console.log("2. Navegador aberto! Aguardando 40s...");
+        await new Promise(res => setTimeout(res, 40000));
 
         if (PHONE_NUMBER && !client.info) {
             console.log("3. Pedindo código para:", PHONE_NUMBER);
             const code = await client.requestPairingCode(PHONE_NUMBER);
             console.log('\n=========================================');
-            console.log('👉 SEU CÓDIGO:', code);
+            console.log('👉 DIGITE NO WHATSAPP:', code);
             console.log('=========================================\n');
         }
     } catch (err) {
-        console.error("❌ Erro no arranque:", err.message);
-        setTimeout(iniciarConexao, 60000);
+        console.error("❌ ERRO NO ARRANQUE:", err.message);
+        console.log("DICA: Se o erro for ENOENT, o Railway falhou no download do Chromium.");
+        // Tenta de novo em 1 minuto
+        setTimeout(start, 60000);
     }
 }
 
-iniciarConexao();
+start();
