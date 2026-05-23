@@ -4,10 +4,8 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
-  },
-  "engines": {
-    "node": "20.x"
+    "start": "node index.js",
+    "postinstall": "npx puppeteer install --browser chrome"
   },
   "dependencies": {
     "whatsapp-web.js": "1.26.0",
@@ -16,4 +14,4 @@
     "axios": "1.7.2",
     "dotenv": "^16.4.5"
   }
-    }
+}
