@@ -1,71 +1,63 @@
 import pkg from 'whatsapp-web.js';
 const { Client, LocalAuth } = pkg;
 import qrcode from 'qrcode-terminal';
+import puppeteer from 'puppeteer'; // Importamos o puppeteer puro para achar o path
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-console.log("🚀 Motor Zero-Erro v9 - A caçada ao Chrome!");
+console.log("🚀 Motor Zero-Erro v10 - Baixando e Iniciando...");
 
 const PHONE_NUMBER = process.env.PHONE_NUMBER;
 
-// Lista de caminhos possíveis no Railway
-const paths = [
-    "/usr/bin/google-chrome-stable",
-    "/usr/bin/google-chrome",
-    "google-chrome-stable",
-    "google-chrome",
-    "chromium"
-];
-
 async function start() {
-    let client;
-    let connected = false;
-
-    for (const path of paths) {
-        if (connected) break;
+    try {
+        console.log("1. Localizando navegador baixado...");
         
-        try {
-            console.log(`🔍 Tentando abrir navegador em: ${path}`);
-            client = new Client({
-                authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
-                puppeteer: {
-                    headless: 'new',
-                    executablePath: path,
-                    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-                }
-            });
+        // Esta linha encontra o Chrome que o 'postinstall' baixou
+        const browserFetcher = puppeteer.createBrowserFetcher();
+        const executablePath = puppeteer.executablePath();
 
-            client.on('qr', (qr) => {
-                console.log('⚠️ QR CODE GERADO:');
-                qrcode.generate(qr, { small: true });
-            });
+        console.log(`📂 Chrome encontrado em: ${executablePath}`);
 
-            client.on('ready', () => console.log('✅ BOT CONECTADO!'));
+        const client = new Client({
+            authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
+            puppeteer: {
+                headless: 'new',
+                executablePath: executablePath,
+                args: [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-gpu',
+                    '--single-process'
+                ]
+            }
+        });
 
-            await client.initialize();
-            connected = true;
-            console.log(`✨ Sucesso com o caminho: ${path}`);
-            
-            // Espera o sistema estabilizar e pede o código
-            setTimeout(async () => {
-                if (PHONE_NUMBER && !client.info) {
-                    try {
-                        const code = await client.requestPairingCode(PHONE_NUMBER);
-                        console.log('\n=========================================');
-                        console.log('👉 SEU CÓDIGO:', code);
-                        console.log('=========================================\n');
-                    } catch (e) { console.log("Erro ao gerar código, tente o QR Code acima."); }
-                }
-            }, 30000);
+        client.on('qr', (qr) => {
+            console.log('⚠️ QR CODE NO TERMINAL:');
+            qrcode.generate(qr, { small: true });
+        });
 
-        } catch (err) {
-            console.log(`❌ Falha no caminho ${path}: ${err.message}`);
+        client.on('ready', () => console.log('✅ BOT CONECTADO COM SUCESSO!'));
+
+        await client.initialize();
+        
+        // Espera 40s para o WhatsApp carregar no servidor
+        await new Promise(res => setTimeout(res, 40000));
+
+        if (PHONE_NUMBER && !client.info) {
+            console.log("3. Pedindo código para:", PHONE_NUMBER);
+            const code = await client.requestPairingCode(PHONE_NUMBER);
+            console.log('\n=========================================');
+            console.log('👉 SEU CÓDIGO NO WHATSAPP:', code);
+            console.log('=========================================\n');
         }
-    }
 
-    if (!connected) {
-        console.log("💀 Nenhum navegador encontrado. Reiniciando em 1 min...");
+    } catch (err) {
+        console.error("❌ ERRO NO ARRANQUE:", err.message);
+        console.log("Tentando reiniciar em 1 minuto...");
         setTimeout(start, 60000);
     }
 }
