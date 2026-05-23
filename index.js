@@ -1,62 +1,54 @@
 import pkg from 'whatsapp-web.js';
 const { Client, LocalAuth } = pkg;
 import qrcode from 'qrcode-terminal';
-import puppeteer from 'puppeteer';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-console.log("🚀 Motor Zero-Erro v14 - Usando Chrome Interno...");
+console.log("🚀 Motor Ultra-Light v15 - Economizando RAM...");
 
 const PHONE_NUMBER = process.env.PHONE_NUMBER;
 
+const client = new Client({
+    authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
+    puppeteer: {
+        headless: 'new',
+        executablePath: '/usr/bin/chromium',
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process', // Essencial para economizar RAM
+            '--disable-gpu',
+            '--disable-extensions'
+        ]
+    }
+});
+
+client.on('qr', (qr) => {
+    console.log('⚠️ QR CODE:');
+    qrcode.generate(qr, { small: true });
+});
+
+client.on('ready', () => console.log('✅ CONECTADO!'));
+
 async function start() {
     try {
-        console.log("1. Localizando navegador baixado no cache...");
-        
-        // Esta linha pega o caminho do Chrome que foi baixado no 'postinstall'
-        const chromePath = puppeteer.executablePath();
-        console.log(`📂 Caminho detectado: ${chromePath}`);
-
-        const client = new Client({
-            authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
-            puppeteer: {
-                headless: 'new',
-                executablePath: chromePath,
-                args: [
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-dev-shm-usage',
-                    '--disable-gpu',
-                    '--single-process'
-                ]
-            }
-        });
-
-        client.on('qr', (qr) => {
-            console.log('⚠️ QR CODE GERADO:');
-            qrcode.generate(qr, { small: true });
-        });
-
-        client.on('ready', () => console.log('✅✅ BOT ONLINE! ✅✅'));
-
-        console.log("2. Inicializando navegador...");
+        console.log("1. Iniciando navegador leve...");
         await client.initialize();
         
-        console.log("3. Aguardando 40s para estabilizar...");
-        await new Promise(res => setTimeout(res, 40000));
+        await new Promise(res => setTimeout(res, 30000));
 
         if (PHONE_NUMBER && !client.info) {
-            console.log("4. Solicitando código para:", PHONE_NUMBER);
+            console.log("2. Pedindo código para:", PHONE_NUMBER);
             const code = await client.requestPairingCode(PHONE_NUMBER);
-            console.log('\n=========================================');
-            console.log('👉 SEU CÓDIGO NO WHATSAPP:', code);
-            console.log('=========================================\n');
+            console.log('\n👉 SEU CÓDIGO:', code, '\n');
         }
-
     } catch (err) {
-        console.error("❌ ERRO FATAL:", err.message);
-        console.log("Reiniciando em 1 minuto...");
+        console.error("❌ Erro:", err.message);
         setTimeout(start, 60000);
     }
 }
