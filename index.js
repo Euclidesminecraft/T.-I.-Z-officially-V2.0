@@ -5,55 +5,67 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-console.log("🚀 Motor Zero-Erro v8 - Moçambique no topo!");
+console.log("🚀 Motor Zero-Erro v9 - A caçada ao Chrome!");
 
 const PHONE_NUMBER = process.env.PHONE_NUMBER;
-// NO RAILWAY COM NIXPACKS, O NOME É ESTE:
-const chromePath = "chromium"; 
 
-const client = new Client({
-    authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
-    puppeteer: {
-        headless: 'new',
-        executablePath: chromePath,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-gpu',
-            '--no-zygote',
-            '--single-process'
-        ]
-    }
-});
-
-client.on('qr', (qr) => {
-    console.log('⚠️ QR CODE DISPONÍVEL (Caso o código de 8 dígitos falhe):');
-    qrcode.generate(qr, { small: true });
-});
-
-client.on('ready', () => {
-    console.log('✅✅ CONECTADO COM SUCESSO! O BOT ESTÁ VIVO! ✅✅');
-});
+// Lista de caminhos possíveis no Railway
+const paths = [
+    "/usr/bin/google-chrome-stable",
+    "/usr/bin/google-chrome",
+    "google-chrome-stable",
+    "google-chrome",
+    "chromium"
+];
 
 async function start() {
-    try {
-        console.log(`1. Abrindo navegador: ${chromePath}`);
-        await client.initialize();
-        
-        console.log("2. Navegador OK! Aguardando 40 segundos para o WhatsApp carregar...");
-        await new Promise(res => setTimeout(res, 40000));
+    let client;
+    let connected = false;
 
-        if (PHONE_NUMBER && !client.info) {
-            console.log(`3. Solicitando código para: ${PHONE_NUMBER}`);
-            const code = await client.requestPairingCode(PHONE_NUMBER);
-            console.log('\n=========================================');
-            console.log('👉 DIGITE ESTE CÓDIGO NO WHATSAPP:', code);
-            console.log('=========================================\n');
+    for (const path of paths) {
+        if (connected) break;
+        
+        try {
+            console.log(`🔍 Tentando abrir navegador em: ${path}`);
+            client = new Client({
+                authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
+                puppeteer: {
+                    headless: 'new',
+                    executablePath: path,
+                    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+                }
+            });
+
+            client.on('qr', (qr) => {
+                console.log('⚠️ QR CODE GERADO:');
+                qrcode.generate(qr, { small: true });
+            });
+
+            client.on('ready', () => console.log('✅ BOT CONECTADO!'));
+
+            await client.initialize();
+            connected = true;
+            console.log(`✨ Sucesso com o caminho: ${path}`);
+            
+            // Espera o sistema estabilizar e pede o código
+            setTimeout(async () => {
+                if (PHONE_NUMBER && !client.info) {
+                    try {
+                        const code = await client.requestPairingCode(PHONE_NUMBER);
+                        console.log('\n=========================================');
+                        console.log('👉 SEU CÓDIGO:', code);
+                        console.log('=========================================\n');
+                    } catch (e) { console.log("Erro ao gerar código, tente o QR Code acima."); }
+                }
+            }, 30000);
+
+        } catch (err) {
+            console.log(`❌ Falha no caminho ${path}: ${err.message}`);
         }
-    } catch (err) {
-        console.error("❌ ERRO NO ARRANQUE:", err.message);
-        console.log("DICA: Reiniciando em 1 minuto...");
+    }
+
+    if (!connected) {
+        console.log("💀 Nenhum navegador encontrado. Reiniciando em 1 min...");
         setTimeout(start, 60000);
     }
 }
