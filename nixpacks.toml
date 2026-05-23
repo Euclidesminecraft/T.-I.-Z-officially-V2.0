@@ -2,4 +2,4 @@
 nixPkgs = ["nodejs", "cacert", "glib", "nss", "expat", "libxcb", "libgbm"]
 
 [variables]
-PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "false"
+PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
