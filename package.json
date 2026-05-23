@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "postinstall": "npx puppeteer install --browser chrome"
+    "postinstall": "npx puppeteer browsers install chrome"
   },
   "dependencies": {
     "whatsapp-web.js": "1.26.0",
