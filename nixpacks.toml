@@ -1,6 +1,6 @@
 [phases.setup]
-nixPkgs = ["nodejs", "chromium", "cacert"]
+nixPkgs = ["nodejs", "google-chrome", "cacert"]
 
 [variables]
 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
-PUPPETEER_EXECUTABLE_PATH = "chromium"
+PUPPETEER_EXECUTABLE_PATH = "google-chrome-stable"
